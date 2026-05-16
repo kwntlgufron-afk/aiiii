@@ -22,7 +22,7 @@
 const CONFIG = {
   PROXY_URL: './api/chat',     // URL proxy server (ubah saat deploy)
   DEFAULT_DAILY_LIMIT: 5,
-  OWNER_USERNAME: 'Marvel',   // Username owner
+  OWNER_USERNAME: 'MarvelSigma', // Siapa pun yang daftar dengan username ini jadi owner
   VERSION: '1.0.0'
 };
 
@@ -180,14 +180,6 @@ function handleLogin() {
   }
 
   const users = Store.getUsers();
-  // Owner check
-  if (username === CONFIG.OWNER_USERNAME && password === getOwnerPass()) { // plain compare
-    const ownerUser = { id: 'owner', username: 'Marvel', email: 'owner@luaai.app', role: 'owner', plan: 'owner' };
-    closeAuth();
-    loginUser(ownerUser);
-    return;
-  }
-
   const user = users.find(u => (u.username === username || u.email === username) && u.password === hashPass(password));
   if (!user) { showError(errEl, 'Username/email atau password salah.'); return; }
 
@@ -205,9 +197,7 @@ function handleRegister() {
   if (!username || !email || !pass || !passConfirm) {
     showError(errEl, 'Isi semua field terlebih dahulu.'); return;
   }
-  if (username === CONFIG.OWNER_USERNAME) {
-    showError(errEl, 'Username tidak tersedia.'); return;
-  }
+  // Username MarvelSigma diizinkan daftar — akan otomatis jadi owner
   if (pass.length < 8) { showError(errEl, 'Password minimal 8 karakter.'); return; }
   if (pass !== passConfirm) { showError(errEl, 'Password tidak cocok.'); return; }
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { showError(errEl, 'Format email tidak valid.'); return; }
@@ -216,12 +206,13 @@ function handleRegister() {
   if (users.find(u => u.username === username)) { showError(errEl, 'Username sudah digunakan.'); return; }
   if (users.find(u => u.email === email)) { showError(errEl, 'Email sudah terdaftar.'); return; }
 
+  const isOwner = username === CONFIG.OWNER_USERNAME;
   const newUser = {
-    id: 'u_' + Date.now(),
+    id: isOwner ? 'owner' : 'u_' + Date.now(),
     username, email,
     password: hashPass(pass),
-    role: 'customer',
-    plan: 'free',
+    role: isOwner ? 'owner' : 'customer',
+    plan: isOwner ? 'owner' : 'free',
     points: 0,
     createdAt: new Date().toISOString()
   };
@@ -617,6 +608,14 @@ function confirmTopup() {
 // ─── OWNER DASHBOARD ─────────────────────────────────────────────
 function showOwnerDash() {
   document.getElementById('ownerDash').classList.remove('hidden');
+  // Update nama owner di sidebar secara dinamis
+  const u = state.currentUser;
+  if (u) {
+    const av = document.getElementById('ownerAvatar');
+    const nm = document.getElementById('ownerSidebarName');
+    if (av) av.textContent = u.username[0].toUpperCase();
+    if (nm) nm.textContent = u.username;
+  }
   showOwnerSection('overview');
   updateOwnerStats();
   loadOwnerData();
