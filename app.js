@@ -181,7 +181,7 @@ function handleLogin() {
 
   const users = Store.getUsers();
   // Owner check
-  if (username === CONFIG.OWNER_USERNAME && password === getOwnerPass()) {
+  if (username === CONFIG.OWNER_USERNAME && password === getOwnerPass()) { // plain compare
     const ownerUser = { id: 'owner', username: 'Marvel', email: 'owner@luaai.app', role: 'owner', plan: 'owner' };
     closeAuth();
     loginUser(ownerUser);
@@ -260,7 +260,7 @@ function getOwnerPass() {
   // Default password owner: "Marvel@2025"
   // Di produksi, ini harus diverifikasi server-side
   const cfg = Store.getPlatformConfig();
-  return cfg.ownerPassHash || hashPass('Marvel@2025');
+  return cfg.ownerPass || 'Marvel123';
 }
 
 // Simple hash untuk demo (gunakan bcrypt di produksi)
