@@ -1,0 +1,637 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LuaAI — Intelligent Lua Code Assistant</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body data-theme="dark-blue">
+
+<!-- LOADING SCREEN -->
+<div id="loadingScreen" class="loading-screen">
+  <div class="loader-logo">LuaAI</div>
+  <div class="loader-bar"><div class="loader-fill"></div></div>
+</div>
+
+<!-- AUTH MODAL -->
+<div id="authModal" class="modal-overlay hidden">
+  <div class="modal-box">
+    <div class="modal-header">
+      <span class="modal-logo">LuaAI</span>
+      <button class="modal-close" onclick="closeAuth()">✕</button>
+    </div>
+    <div class="auth-tabs">
+      <button class="auth-tab active" onclick="switchTab('login')">Sign In</button>
+      <button class="auth-tab" onclick="switchTab('register')">Sign Up</button>
+    </div>
+
+    <!-- LOGIN FORM -->
+    <div id="loginForm" class="auth-form">
+      <div class="form-group">
+        <label>Username atau Email</label>
+        <input type="text" id="loginUser" placeholder="Masukkan username / email" autocomplete="username">
+      </div>
+      <div class="form-group">
+        <label>Password</label>
+        <input type="password" id="loginPass" placeholder="Masukkan password" autocomplete="current-password">
+      </div>
+      <div id="loginError" class="form-error hidden"></div>
+      <button class="btn-primary" onclick="handleLogin()">Masuk</button>
+      <p class="auth-switch">Belum punya akun? <a href="#" onclick="switchTab('register')">Daftar sekarang</a></p>
+    </div>
+
+    <!-- REGISTER FORM -->
+    <div id="registerForm" class="auth-form hidden">
+      <div class="form-group">
+        <label>Username</label>
+        <input type="text" id="regUser" placeholder="Buat username unik" autocomplete="username">
+      </div>
+      <div class="form-group">
+        <label>Email</label>
+        <input type="email" id="regEmail" placeholder="email@kamu.com" autocomplete="email">
+      </div>
+      <div class="form-group">
+        <label>Password</label>
+        <input type="password" id="regPass" placeholder="Min. 8 karakter" autocomplete="new-password">
+      </div>
+      <div class="form-group">
+        <label>Konfirmasi Password</label>
+        <input type="password" id="regPassConfirm" placeholder="Ulangi password" autocomplete="new-password">
+      </div>
+      <div id="regError" class="form-error hidden"></div>
+      <button class="btn-primary" onclick="handleRegister()">Buat Akun</button>
+      <p class="auth-switch">Sudah punya akun? <a href="#" onclick="switchTab('login')">Masuk</a></p>
+    </div>
+  </div>
+</div>
+
+<!-- TOPUP MODAL -->
+<div id="topupModal" class="modal-overlay hidden">
+  <div class="modal-box wide">
+    <div class="modal-header">
+      <span class="modal-logo">Top Up Points</span>
+      <button class="modal-close" onclick="closeTopup()">✕</button>
+    </div>
+    <p class="topup-desc">Tingkatkan limit chat harian kamu dengan membeli points.</p>
+    <div class="topup-plans">
+      <div class="plan-card" onclick="selectPlan(this, 50, 15000)">
+        <div class="plan-badge">Starter</div>
+        <div class="plan-points">50 <span>pts</span></div>
+        <div class="plan-desc">+50 chat ekstra</div>
+        <div class="plan-price">Rp 15.000</div>
+      </div>
+      <div class="plan-card featured" onclick="selectPlan(this, 100, 25000)">
+        <div class="plan-badge popular">Popular</div>
+        <div class="plan-points">100 <span>pts</span></div>
+        <div class="plan-desc">+100 chat ekstra</div>
+        <div class="plan-price">Rp 25.000</div>
+      </div>
+      <div class="plan-card" onclick="selectPlan(this, 200, 45000)">
+        <div class="plan-badge">Pro</div>
+        <div class="plan-points">200 <span>pts</span></div>
+        <div class="plan-desc">+200 chat ekstra</div>
+        <div class="plan-price">Rp 45.000</div>
+      </div>
+    </div>
+    <div id="selectedPlan" class="selected-plan hidden">
+      <p>Plan dipilih: <strong id="planLabel"></strong></p>
+      <div class="payment-info">
+        <p>Transfer ke rekening berikut:</p>
+        <div class="bank-detail">BCA · 1234567890 · a/n LuaAI Platform</div>
+        <p class="note">Setelah transfer, kirim bukti ke admin untuk konfirmasi.</p>
+      </div>
+      <button class="btn-primary" onclick="confirmTopup()">Konfirmasi Pembayaran</button>
+    </div>
+  </div>
+</div>
+
+<!-- LANDING PAGE -->
+<div id="landingPage">
+  <nav class="navbar">
+    <div class="nav-logo">LuaAI</div>
+    <div class="nav-links">
+      <a href="#features">Fitur</a>
+      <a href="#pricing">Harga</a>
+      <button class="btn-outline" onclick="openAuth()">Sign In</button>
+      <button class="btn-primary" onclick="openAuth('register')">Mulai Gratis</button>
+    </div>
+    <button class="nav-mobile-btn" onclick="openAuth()">Mulai</button>
+  </nav>
+
+  <section class="hero">
+    <div class="hero-bg">
+      <div class="orb orb1"></div>
+      <div class="orb orb2"></div>
+      <div class="grid-lines"></div>
+    </div>
+    <div class="hero-content">
+      <div class="hero-badge">✦ AI untuk Developer Lua</div>
+      <h1>Kode Lua Lebih <br><span class="gradient-text">Cerdas & Cepat</span></h1>
+      <p>Asisten AI berbasis Claude yang memahami struktur kode Lua kamu. Upload file referensi, tanyakan apa saja, dapatkan jawaban akurat.</p>
+      <div class="hero-btns">
+        <button class="btn-primary large" onclick="openAuth('register')">Coba Gratis — 5 Chat/Hari</button>
+        <button class="btn-ghost large" onclick="openAuth()">Sudah punya akun</button>
+      </div>
+      <div class="hero-stats">
+        <div class="stat"><span>5</span> Chat Gratis/Hari</div>
+        <div class="stat-sep">·</div>
+        <div class="stat"><span>200+</span> Points Top Up</div>
+        <div class="stat-sep">·</div>
+        <div class="stat"><span>24/7</span> Online</div>
+      </div>
+    </div>
+    <div class="hero-demo">
+      <div class="demo-window">
+        <div class="demo-topbar"><span></span><span></span><span></span></div>
+        <div class="demo-chat">
+          <div class="demo-msg bot">Halo! Saya LuaAI. Tanyakan apapun tentang kode Lua-mu 🚀</div>
+          <div class="demo-msg user">Buatkan fungsi untuk sorting table di Lua</div>
+          <div class="demo-msg bot typing">
+            <code>function sortTable(t, key)<br>  table.sort(t, function(a, b)<br>    return a[key] &lt; b[key]<br>  end)<br>  return t<br>end</code>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="features" class="features">
+    <div class="section-header">
+      <div class="section-tag">Fitur Unggulan</div>
+      <h2>Semua yang kamu butuhkan</h2>
+    </div>
+    <div class="features-grid">
+      <div class="feature-card">
+        <div class="feature-icon">⚡</div>
+        <h3>Context-Aware AI</h3>
+        <p>AI membaca file Lua yang di-upload owner sebagai referensi, sehingga jawaban lebih relevan dengan proyek kamu.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🔐</div>
+        <h3>Aman & Privat</h3>
+        <p>API key tidak pernah terekspos ke browser. Semua request melalui proxy aman di server.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🎨</div>
+        <h3>Dark Blue / Red Theme</h3>
+        <p>Pilih tampilan yang nyaman di mata. Toggle antara Dark Blue dan Red Blue kapan saja.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">👑</div>
+        <h3>Panel Owner</h3>
+        <p>Owner dapat mengatur API key, file konteks Lua, dan kelola plan pengguna langsung dari dashboard.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">💬</div>
+        <h3>Limit & Top Up</h3>
+        <p>5 chat gratis per hari. Butuh lebih? Top up points untuk mendapatkan chat unlimited.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">📁</div>
+        <h3>Upload File Lua</h3>
+        <p>Owner upload struktur dan referensi kode Lua. AI otomatis membaca dan memahami konteksnya.</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="pricing" class="pricing">
+    <div class="section-header">
+      <div class="section-tag">Harga</div>
+      <h2>Mulai gratis, upgrade kapan saja</h2>
+    </div>
+    <div class="pricing-grid">
+      <div class="pricing-card">
+        <div class="pricing-name">Free</div>
+        <div class="pricing-price">Rp 0<span>/hari</span></div>
+        <ul class="pricing-features">
+          <li>✓ 5 chat per hari</li>
+          <li>✓ Akses AI Claude</li>
+          <li>✓ Konteks file Lua</li>
+          <li>✗ Chat unlimited</li>
+        </ul>
+        <button class="btn-outline" onclick="openAuth('register')">Mulai Gratis</button>
+      </div>
+      <div class="pricing-card featured">
+        <div class="pricing-badge">Terpopuler</div>
+        <div class="pricing-name">Points 100</div>
+        <div class="pricing-price">Rp 25.000<span>/100 pts</span></div>
+        <ul class="pricing-features">
+          <li>✓ +100 chat ekstra</li>
+          <li>✓ Tidak expired</li>
+          <li>✓ Akses semua fitur</li>
+          <li>✓ Priority support</li>
+        </ul>
+        <button class="btn-primary" onclick="openAuth('register')">Beli Sekarang</button>
+      </div>
+      <div class="pricing-card">
+        <div class="pricing-name">Points 200</div>
+        <div class="pricing-price">Rp 45.000<span>/200 pts</span></div>
+        <ul class="pricing-features">
+          <li>✓ +200 chat ekstra</li>
+          <li>✓ Tidak expired</li>
+          <li>✓ Akses semua fitur</li>
+          <li>✓ Priority support</li>
+        </ul>
+        <button class="btn-outline" onclick="openAuth('register')">Beli Sekarang</button>
+      </div>
+    </div>
+  </section>
+
+  <footer class="footer">
+    <div class="footer-logo">LuaAI</div>
+    <p>Asisten AI cerdas untuk developer Lua. Dibuat dengan ❤️ oleh Marvel.</p>
+    <p class="footer-small">© 2025 LuaAI. Hak cipta dilindungi.</p>
+  </footer>
+</div>
+
+<!-- CUSTOMER DASHBOARD -->
+<div id="customerDash" class="dashboard hidden">
+  <aside class="sidebar">
+    <div class="sidebar-logo">LuaAI</div>
+    <nav class="sidebar-nav">
+      <button class="nav-item active" onclick="showSection('chat')">
+        <span class="nav-icon">💬</span> Chat
+      </button>
+      <button class="nav-item" onclick="showSection('history')">
+        <span class="nav-icon">📜</span> Riwayat
+      </button>
+      <button class="nav-item" onclick="showSection('points')">
+        <span class="nav-icon">⭐</span> Points
+      </button>
+      <button class="nav-item" onclick="showSection('settings')">
+        <span class="nav-icon">⚙️</span> Pengaturan
+      </button>
+    </nav>
+    <div class="sidebar-user">
+      <div class="user-avatar" id="sidebarAvatar">U</div>
+      <div class="user-info">
+        <div class="user-name" id="sidebarName">User</div>
+        <div class="user-plan" id="sidebarPlan">Free</div>
+      </div>
+      <button class="logout-btn" onclick="handleLogout()" title="Keluar">⏻</button>
+    </div>
+  </aside>
+
+  <main class="dash-main">
+    <div class="dash-topbar">
+      <div class="dash-title" id="dashTitle">Chat dengan LuaAI</div>
+      <div class="dash-controls">
+        <div class="theme-toggle">
+          <button onclick="setTheme('dark-blue')" class="theme-btn" id="btnDarkBlue" title="Dark Blue">🔵</button>
+          <button onclick="setTheme('red-blue')" class="theme-btn" id="btnRedBlue" title="Red Blue">🔴</button>
+        </div>
+        <div class="chat-limit-badge" id="limitBadge">5 chat tersisa hari ini</div>
+      </div>
+    </div>
+
+    <!-- CHAT SECTION -->
+    <section id="chatSection" class="dash-section">
+      <div class="chat-container">
+        <div class="chat-messages" id="chatMessages">
+          <div class="chat-welcome">
+            <div class="welcome-icon">⚡</div>
+            <h3>Selamat datang di LuaAI</h3>
+            <p>Tanyakan apapun tentang kode Lua. AI telah membaca file referensi dari owner.</p>
+          </div>
+        </div>
+        <div class="chat-input-area">
+          <div class="chat-input-box">
+            <textarea id="chatInput" placeholder="Tanyakan sesuatu tentang Lua..." rows="1" onkeydown="handleChatKey(event)" oninput="autoResize(this)"></textarea>
+            <button class="send-btn" onclick="sendMessage()" id="sendBtn">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <line x1="22" y1="2" x2="11" y2="13"></line>
+                <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+              </svg>
+            </button>
+          </div>
+          <div class="chat-footer-note">LuaAI dapat membuat kesalahan. Selalu verifikasi kode penting.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- HISTORY SECTION -->
+    <section id="historySection" class="dash-section hidden">
+      <div class="section-content">
+        <h2>Riwayat Chat</h2>
+        <div id="historyList" class="history-list">
+          <div class="empty-state">📭 Belum ada riwayat chat.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- POINTS SECTION -->
+    <section id="pointsSection" class="dash-section hidden">
+      <div class="section-content">
+        <h2>Points & Limit</h2>
+        <div class="points-overview">
+          <div class="points-card">
+            <div class="points-label">Points Kamu</div>
+            <div class="points-value" id="pointsValue">0</div>
+            <div class="points-sub">1 point = 1 chat ekstra</div>
+          </div>
+          <div class="points-card">
+            <div class="points-label">Chat Hari Ini</div>
+            <div class="points-value" id="chatUsedToday">0 / 5</div>
+            <div class="points-sub">Reset setiap tengah malam</div>
+          </div>
+        </div>
+        <h3 style="margin-top:2rem">Top Up Points</h3>
+        <div class="topup-plans inline">
+          <div class="plan-card" onclick="selectPlanInline(this, 50, 15000)">
+            <div class="plan-badge">Starter</div>
+            <div class="plan-points">50 <span>pts</span></div>
+            <div class="plan-price">Rp 15.000</div>
+          </div>
+          <div class="plan-card featured" onclick="selectPlanInline(this, 100, 25000)">
+            <div class="plan-badge popular">Popular</div>
+            <div class="plan-points">100 <span>pts</span></div>
+            <div class="plan-price">Rp 25.000</div>
+          </div>
+          <div class="plan-card" onclick="selectPlanInline(this, 200, 45000)">
+            <div class="plan-badge">Pro</div>
+            <div class="plan-points">200 <span>pts</span></div>
+            <div class="plan-price">Rp 45.000</div>
+          </div>
+        </div>
+        <div id="inlinePayment" class="inline-payment hidden">
+          <div class="payment-info">
+            <p>Transfer ke rekening berikut:</p>
+            <div class="bank-detail">BCA · 1234567890 · a/n LuaAI Platform</div>
+            <p class="note">Setelah transfer, hubungi admin dengan screenshot bukti transfer.</p>
+            <button class="btn-primary" onclick="hideInlinePayment()">Tutup</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SETTINGS SECTION -->
+    <section id="settingsSection" class="dash-section hidden">
+      <div class="section-content">
+        <h2>Pengaturan Akun</h2>
+        <div class="settings-group">
+          <h3>Tema Tampilan</h3>
+          <div class="theme-options">
+            <div class="theme-opt" onclick="setTheme('dark-blue')" id="themeDarkBlue">
+              <div class="theme-preview dark-blue-preview"></div>
+              <span>Dark Blue</span>
+            </div>
+            <div class="theme-opt" onclick="setTheme('red-blue')" id="themeRedBlue">
+              <div class="theme-preview red-blue-preview"></div>
+              <span>Red Blue</span>
+            </div>
+          </div>
+        </div>
+        <div class="settings-group">
+          <h3>Informasi Akun</h3>
+          <div class="account-info">
+            <div class="info-row"><span>Username:</span><strong id="infoUsername">—</strong></div>
+            <div class="info-row"><span>Email:</span><strong id="infoEmail">—</strong></div>
+            <div class="info-row"><span>Plan:</span><strong id="infoPlan">Free</strong></div>
+            <div class="info-row"><span>Points:</span><strong id="infoPoints">0</strong></div>
+          </div>
+        </div>
+        <div class="settings-group">
+          <h3>Zona Bahaya</h3>
+          <button class="btn-danger" onclick="handleLogout()">Keluar dari Akun</button>
+        </div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<!-- OWNER DASHBOARD -->
+<div id="ownerDash" class="dashboard hidden">
+  <aside class="sidebar owner-sidebar">
+    <div class="sidebar-logo">LuaAI <span class="owner-badge">Owner</span></div>
+    <nav class="sidebar-nav">
+      <button class="nav-item active" onclick="showOwnerSection('overview')">
+        <span class="nav-icon">📊</span> Overview
+      </button>
+      <button class="nav-item" onclick="showOwnerSection('apikey')">
+        <span class="nav-icon">🔑</span> API Key
+      </button>
+      <button class="nav-item" onclick="showOwnerSection('luafiles')">
+        <span class="nav-icon">📁</span> File Lua
+      </button>
+      <button class="nav-item" onclick="showOwnerSection('users')">
+        <span class="nav-icon">👥</span> Pengguna
+      </button>
+      <button class="nav-item" onclick="showOwnerSection('ownerSettings')">
+        <span class="nav-icon">⚙️</span> Pengaturan
+      </button>
+    </nav>
+    <div class="sidebar-user">
+      <div class="user-avatar owner-av">M</div>
+      <div class="user-info">
+        <div class="user-name">Marvel</div>
+        <div class="user-plan">Owner</div>
+      </div>
+      <button class="logout-btn" onclick="handleLogout()" title="Keluar">⏻</button>
+    </div>
+  </aside>
+
+  <main class="dash-main">
+    <div class="dash-topbar">
+      <div class="dash-title" id="ownerDashTitle">Owner Dashboard</div>
+      <div class="dash-controls">
+        <div class="theme-toggle">
+          <button onclick="setTheme('dark-blue')" class="theme-btn" title="Dark Blue">🔵</button>
+          <button onclick="setTheme('red-blue')" class="theme-btn" title="Red Blue">🔴</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- OVERVIEW -->
+    <section id="ownerOverviewSection" class="dash-section">
+      <div class="section-content">
+        <div class="owner-stats-grid">
+          <div class="owner-stat-card">
+            <div class="ostat-icon">👥</div>
+            <div class="ostat-val" id="statTotalUsers">0</div>
+            <div class="ostat-label">Total Pengguna</div>
+          </div>
+          <div class="owner-stat-card">
+            <div class="ostat-icon">💬</div>
+            <div class="ostat-val" id="statTotalChats">0</div>
+            <div class="ostat-label">Total Chat</div>
+          </div>
+          <div class="owner-stat-card">
+            <div class="ostat-icon">📁</div>
+            <div class="ostat-val" id="statLuaFiles">0</div>
+            <div class="ostat-label">File Lua</div>
+          </div>
+          <div class="owner-stat-card">
+            <div class="ostat-icon">🔑</div>
+            <div class="ostat-val" id="statApiStatus">—</div>
+            <div class="ostat-label">Status API</div>
+          </div>
+        </div>
+        <div class="owner-activity">
+          <h3>Log Aktivitas Terbaru</h3>
+          <div class="activity-log" id="activityLog">
+            <div class="log-entry">Sistem berjalan normal ✓</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- API KEY SECTION -->
+    <section id="ownerApikeySection" class="dash-section hidden">
+      <div class="section-content">
+        <h2>Manajemen API Key</h2>
+        <div class="security-warning">
+          ⚠️ API Key hanya tersimpan di memori lokal untuk demo. Untuk produksi, simpan di server-side environment variable.
+        </div>
+        <div class="apikey-form">
+          <div class="form-group">
+            <label>API Key Anthropic (Claude)</label>
+            <div class="input-password-wrap">
+              <input type="password" id="ownerApiKey" placeholder="sk-ant-..." autocomplete="off">
+              <button class="toggle-vis" onclick="toggleApiKeyVis()">👁</button>
+            </div>
+            <p class="form-hint">Key ini TIDAK dikirim ke client/browser. Hanya digunakan di server proxy.</p>
+          </div>
+          <div class="form-group">
+            <label>Status</label>
+            <div class="api-status-row">
+              <div class="status-dot" id="apiStatusDot"></div>
+              <span id="apiStatusText">Belum dikonfigurasi</span>
+            </div>
+          </div>
+          <button class="btn-primary" onclick="saveApiKey()">Simpan API Key</button>
+          <button class="btn-outline" onclick="testApiKey()">Test Koneksi</button>
+        </div>
+        <div class="apikey-info">
+          <h3>🔒 Cara Kerja Keamanan</h3>
+          <ul>
+            <li>API key TIDAK pernah dikirim ke browser pengguna</li>
+            <li>Semua request AI melalui server proxy (lihat <code>proxy-server.js</code>)</li>
+            <li>Untuk deploy, set environment variable <code>ANTHROPIC_API_KEY</code> di server</li>
+            <li>File <code>config.js</code> berisi placeholder, BUKAN key asli</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- LUA FILES SECTION -->
+    <section id="ownerLuafilesSection" class="dash-section hidden">
+      <div class="section-content">
+        <h2>File Referensi Lua</h2>
+        <p class="section-desc">Upload file .lua atau .txt yang berisi struktur dan deskripsi kode. AI akan membaca ini sebagai konteks.</p>
+        <div class="upload-area" id="uploadArea" ondrop="handleFileDrop(event)" ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)">
+          <div class="upload-icon">📁</div>
+          <p>Drag & drop file .lua / .txt ke sini</p>
+          <p class="upload-sub">atau</p>
+          <label class="btn-outline upload-label">
+            Pilih File
+            <input type="file" accept=".lua,.txt,.md" multiple onchange="handleFileSelect(event)" style="display:none">
+          </label>
+        </div>
+        <div class="uploaded-files" id="uploadedFiles">
+          <h3>File Tersimpan</h3>
+          <div id="filesList" class="files-list"></div>
+        </div>
+        <div class="lua-context-preview">
+          <h3>Preview Konteks AI</h3>
+          <div class="context-box" id="contextPreview">
+            <em>Belum ada file yang diupload. AI akan bekerja tanpa konteks khusus.</em>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- USERS SECTION -->
+    <section id="ownerUsersSection" class="dash-section hidden">
+      <div class="section-content">
+        <h2>Manajemen Pengguna</h2>
+        <div class="users-table-wrap">
+          <table class="users-table" id="usersTable">
+            <thead>
+              <tr>
+                <th>Username</th>
+                <th>Email</th>
+                <th>Plan</th>
+                <th>Points</th>
+                <th>Chat Hari Ini</th>
+                <th>Aksi</th>
+              </tr>
+            </thead>
+            <tbody id="usersTableBody">
+              <tr><td colspan="6" class="empty-cell">Belum ada pengguna terdaftar</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- OWNER SETTINGS -->
+    <section id="ownerOwnerSettingsSection" class="dash-section hidden">
+      <div class="section-content">
+        <h2>Pengaturan Platform</h2>
+        <div class="settings-group">
+          <h3>Limit Chat Harian (Pengguna Free)</h3>
+          <div class="form-group inline-form">
+            <input type="number" id="dailyLimitInput" min="1" max="50" value="5">
+            <button class="btn-primary" onclick="saveDailyLimit()">Simpan</button>
+          </div>
+        </div>
+        <div class="settings-group">
+          <h3>Pesan Sistem AI</h3>
+          <div class="form-group">
+            <label>System Prompt (instruksi khusus untuk AI)</label>
+            <textarea id="systemPromptInput" rows="6" placeholder="Kamu adalah asisten kode Lua yang expert..."></textarea>
+            <button class="btn-primary" onclick="saveSystemPrompt()">Simpan System Prompt</button>
+          </div>
+        </div>
+        <div class="settings-group">
+          <h3>Tema Tampilan</h3>
+          <div class="theme-options">
+            <div class="theme-opt" onclick="setTheme('dark-blue')">
+              <div class="theme-preview dark-blue-preview"></div>
+              <span>Dark Blue</span>
+            </div>
+            <div class="theme-opt" onclick="setTheme('red-blue')">
+              <div class="theme-preview red-blue-preview"></div>
+              <span>Red Blue</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<!-- USER PLAN MODAL (Owner) -->
+<div id="userPlanModal" class="modal-overlay hidden">
+  <div class="modal-box">
+    <div class="modal-header">
+      <span class="modal-logo">Edit Plan Pengguna</span>
+      <button class="modal-close" onclick="closeUserPlanModal()">✕</button>
+    </div>
+    <div id="userPlanForm">
+      <input type="hidden" id="editUserId">
+      <div class="form-group">
+        <label>Username</label>
+        <input type="text" id="editUserName" readonly>
+      </div>
+      <div class="form-group">
+        <label>Plan</label>
+        <select id="editUserPlan">
+          <option value="free">Free (5 chat/hari)</option>
+          <option value="premium">Premium (unlimited)</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Tambah Points</label>
+        <input type="number" id="editUserPoints" min="0" value="0">
+      </div>
+      <button class="btn-primary" onclick="saveUserPlan()">Simpan Perubahan</button>
+    </div>
+  </div>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>
